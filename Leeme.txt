@@ -1,0 +1,5 @@
+Carpetas:
+1.Win (aplicacion Windows NetCore 3.1) <- solo para pruebas unitarias e inyecciones al dashboard
+2.Web (aplicacion DashBoard NetCore 3.1)
+3.Servicio (Work Service Net Core 3.1 orientado a servicio windows)
+4.Logica (Librerias Net Core 3.1) <- aqui desarrollar las integraciones
