@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HF.Admin
+﻿namespace HF.Admin
 {
-    internal class Configuration
+    public class Configuration
     {
+        public string? is_prod { get; set; }
     }
 }
