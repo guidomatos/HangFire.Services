@@ -27,6 +27,25 @@ namespace HF.UploadFile
             }
         }
 
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)] //reintentos, por defecto son 10
+        [DisableConcurrentExecution(timeoutInSeconds: 5)] //hacer que espere 1 segundo para que inicie el siguiente y si se lanzan 2 al mismo tiempo o continuo solo entra 1 y los otros caen en deleted
+        [DisplayName("UploadFileToFTP")]
+        [RetryInQueue("upload_file_to_ftp")]
+        public async Task UploadFileToFTP(PerformContext context, FTPStorage ftpstorage, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using (Logic.Logic objL = new Logic.Logic())
+                {
+                    await objL.TransferExcelToFTP(context, ftpstorage, cancellationToken);
+                }
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         public void Dispose()
         {
             GC.SuppressFinalize(this);

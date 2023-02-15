@@ -17,7 +17,8 @@ namespace HF.Admin
 
         enum MODULES
         {
-            UPLOAD_FILE
+            UPLOAD_FILE,
+            UPLOAD_FILE_TO_FTP
         }
 
         private void LoadModules()
@@ -51,6 +52,37 @@ namespace HF.Admin
                                    () => objL.UploadFile(null, bucketStorage, CancellationToken.None), "0 4 * * *", //"0 0 0 ? 2 MON#5", // la llamada
                                     TimeZoneInfo.Local // 
                                    , queue: "upload_file"
+                                   );
+
+            }
+        }
+
+        void Inyectar_UploadFileToFTP()
+        {
+            using (UploadFile.Inicio objL = new UploadFile.Inicio())
+            {
+                var ftpStorage = new FTPStorage
+                {
+                    server = "ftp-example.pe",
+                    user = "user-example",
+                    pass = "123456",
+                    port = 22
+                };
+
+                if (chkIsProd.Checked)
+                {
+
+                }
+                else
+                {
+
+                }
+
+                RecurringJob.AddOrUpdate(
+                                   "Upload file to FTP", // Nombre del job
+                                   () => objL.UploadFileToFTP(null, ftpStorage, CancellationToken.None), "0 4 * * *", //"0 0 0 ? 2 MON#5", // la llamada
+                                    TimeZoneInfo.Local // 
+                                   , queue: "upload_file_to_ftp"
                                    );
 
             }
@@ -91,7 +123,10 @@ namespace HF.Admin
                 switch (module)
                 {
                     case MODULES.UPLOAD_FILE:
-                        TestUploadFile();
+                        TestUploadFileToStorage();
+                        break;
+                    case MODULES.UPLOAD_FILE_TO_FTP:
+                        TestUploadFileToFTP();
                         break;
                     default:
                         break;
@@ -116,6 +151,9 @@ namespace HF.Admin
                     case MODULES.UPLOAD_FILE:
                         Inyectar_UploadFile();
                         break;
+                    case MODULES.UPLOAD_FILE_TO_FTP:
+                        Inyectar_UploadFileToFTP();
+                        break;
                     default:
                         break;
                 }
@@ -126,7 +164,7 @@ namespace HF.Admin
             }
         }
 
-        void TestUploadFile()
+        void TestUploadFileToStorage()
         {
             using (UploadFile.Inicio objL = new UploadFile.Inicio())
             {
@@ -148,6 +186,25 @@ namespace HF.Admin
                 }
 
                 _ = objL.UploadFile(null, bucketStorage, CancellationToken.None);
+
+            }
+        }
+
+        void TestUploadFileToFTP()
+        {
+            using (UploadFile.Inicio objL = new UploadFile.Inicio())
+            {
+                var ftpStorage = new FTPStorage
+                {
+                    //server = "ftp.gnu.org",
+                    server = "ftp.example.com",
+                    user = "anonymous",
+                    pass = "",
+                    port = 21,
+                    ruta_local = archivos_compartidos
+                };
+
+                _ = objL.UploadFileToFTP(null, ftpStorage, CancellationToken.None);
 
             }
         }

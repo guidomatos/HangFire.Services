@@ -1,7 +1,10 @@
 ﻿using Common;
+using Hangfire.Console;
 using Hangfire.Server;
 using HF.UploadFile.Data;
 using HF.UploadFile.Entity;
+using Renci.SshNet;
+using System.Net;
 using System.Reflection;
 
 namespace HF.UploadFile.Logic
@@ -11,6 +14,7 @@ namespace HF.UploadFile.Logic
         private HFConfig _hfConfig;
         string PATH_LOCAL = string.Empty; //(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetName().CodeBase)).ToString().Replace("file:\\", "");
         string PATH_EXE = (Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetName().CodeBase)).ToString().Replace("file:\\", "");
+        string subFolder = "ORSAN";
 
         public void Dispose()
         {
@@ -92,12 +96,93 @@ namespace HF.UploadFile.Logic
 
         }
 
+
+        internal async Task TransferExcelToFTP(PerformContext context, FTPStorage ftpstorage, CancellationToken ctoken)
+        {
+            try
+            {
+                string archivo_excel = DateTime.Now.ToString("yyyyMMdd_HHmm") + ".xlsx";
+                PATH_LOCAL = ftpstorage.ruta_local;
+
+
+                _hfConfig = new HFConfig();
+
+                Log.WriteLine(context, "Iniciará el Flujo: is_prod: " + _hfConfig.IsProd);
+                Log.WriteLine(context, "Archivo a generar: " + archivo_excel);
+                Log.WriteLine(context, "Ruta archivo: " + PATH_LOCAL);
+
+                int total_acumulado = 0;
+
+                using (DataSql objD = new DataSql(_hfConfig.SqlConfig))
+                {
+                    Log.WriteLine(context, "Ejecutando...");
+
+                    byte[] excel_ready = new byte[0];
+
+                    while (true)
+                    {
+
+                        var dataPendiente = await objD.ExecuteObjetoAlter();
+                        var totalRegistros = dataPendiente.Count;
+
+                        total_acumulado += totalRegistros;
+
+                        if (totalRegistros == 0)
+                        {
+                            Log.WriteLine(context, "No hay más registros que enviar");
+                            break;
+                        }
+
+                        Log.WriteLine(context, "Escribiendo en excel " + dataPendiente.Count.ToString("N0"));
+
+                        excel_ready = await ConvertToExcel(dataPendiente, archivo_excel);
+
+                        break;
+
+                    }
+
+                    if (excel_ready.Length > 0)
+                    {
+                        Log.WriteLine(context, "Subiendo archivo xls a FTP...");
+
+                        //ftpstorage.ruta_local = archivo_excel;
+
+                        //var respuestaSFTP = UploadFileToFTP(archivo_excel, subFolder, "folder_orsan", ftpstorage, context, "orsan.xls");
+                        var respuestaFTP = await UploadFileToFTP2(archivo_excel, subFolder, ftpstorage, context);
+                        Log.WriteLine(context, $"Saludo FTP: {respuestaFTP.saludo}", ConsoleTextColor.Cyan);
+                        Log.WriteLine(context, $"DescripcionStatus FTP: {respuestaFTP.descripcion}", ConsoleTextColor.Cyan);
+                        Log.WriteLine(context, $"Intento FTP: {respuestaFTP.intento}", ConsoleTextColor.Cyan);
+                        Log.WriteLine(context, $"Despedida FTP: {respuestaFTP.despedida}", ConsoleTextColor.Cyan);
+
+                        if (respuestaFTP.ok)
+                        {
+                            Log.WriteLine(context, "Archivo excel subido con Éxito!");
+                        }
+                        else
+                        {
+                            Log.WriteLine(context, "Error al subir FTP");
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(context, "Error Excepcion: " + ex.Message);
+            }
+            finally
+            {
+                Log.WriteLine(context, "Finalizo el flujo");
+            }
+
+        }
+
         private async Task<byte[]> ConvertToExcel(List<ObjectAlter> data, string archivo)
         {
             try
             {
 
-                string folder = Path.Combine("excel");
+                string folder = Path.Combine(subFolder);
                 string dia = DateTime.Today.ToString("dd_MM_yyyy");
 
                 string ruta_local = Path.Combine(PATH_LOCAL, folder, dia, archivo);
@@ -120,7 +205,143 @@ namespace HF.UploadFile.Logic
             }
         }
 
-        
+        private FTPRespuesta UploadFileToFTP(string archivo, string nom_carpeta, string nom_carpeta_remoto, FTPStorage ftpstorage, PerformContext context, string archivo_remoto)
+        {
+            try
+            {
+                int intentos = 10;
+                int intento = 0;
+
+                var respuesta = new FTPRespuesta();
+                respuesta.ok = false;
+
+                string carpeta = Path.Combine(nom_carpeta);
+                string dia = DateTime.Today.ToString("dd_MM_yyyy");
+
+                string ruta_local = Path.Combine(PATH_LOCAL, carpeta, dia, archivo);
+
+                if (!File.Exists(ruta_local))
+                {
+                    throw new Exception($"No se encuentra el archivo {ruta_local}");
+                }
+
+                try
+                {
+                    using (var client = new SftpClient(ftpstorage.server, ftpstorage.port, ftpstorage.user, ftpstorage.pass))
+                    {
+                        while (intento < intentos)
+                        {
+                            intento++;
+                            respuesta.intento = intento;
+
+                            client.Connect();
+
+                            if (!client.Exists(nom_carpeta_remoto))
+                            {
+                                client.CreateDirectory(nom_carpeta_remoto);
+                            }
+
+                            using (FileStream fileStream = File.Open(ruta_local, FileMode.Open, FileAccess.Read))
+                            {
+                                client.UploadFile(fileStream, $@"{nom_carpeta_remoto}\{archivo_remoto}");
+                            }
+
+                            client.Disconnect();
+                            respuesta.ok = true;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(context, $"Exception: {ex.Message}", ConsoleTextColor.Red);
+                }
+
+                return respuesta;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+        private async Task<FTPRespuesta> UploadFileToFTP2(string archivo, string nom_carpeta, FTPStorage ftpStorage, PerformContext context)
+        {
+            try
+            {
+                int intentos = 10;
+                int intento = 0;
+
+                FTPRespuesta respuesta = new FTPRespuesta();
+                respuesta.ok = false;
+
+
+                string carpeta = Path.Combine(nom_carpeta);
+                string dia = DateTime.Today.ToString("dd_MM_yyyy");
+
+                string ruta_local = Path.Combine(PATH_LOCAL, carpeta, dia, archivo);
+
+                if (!File.Exists(ruta_local))
+                {
+                    throw new Exception($"No se encuentra el archivo {ruta_local}");
+                }
+
+                FtpWebRequest request = (FtpWebRequest)WebRequest.Create($"ftp://{ftpStorage.server}:{ftpStorage.port}/{archivo}");
+                request.Method = WebRequestMethods.Ftp.UploadFile;
+                request.Credentials = new NetworkCredential(ftpStorage.user, ftpStorage.pass);
+                request.KeepAlive = true;
+                request.EnableSsl = false;
+
+                using (FileStream fileStream = File.Open(ruta_local, FileMode.Open, FileAccess.Read))
+                {
+
+                    while (intento < intentos)
+                    {
+                        try
+                        {
+                            intento++;
+                            respuesta.intento = intento;
+
+                            using (Stream requestStream = await request.GetRequestStreamAsync())
+                            {
+                                await fileStream.CopyToAsync(requestStream);
+
+                                requestStream.Close();
+                                fileStream.Close();
+
+                                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+                                {
+                                    respuesta.descripcion = response.StatusDescription;
+                                    respuesta.saludo = response.WelcomeMessage;
+                                    respuesta.despedida = response.ExitMessage;
+
+                                    if (response.StatusCode == FtpStatusCode.ClosingData)
+                                    {
+                                        respuesta.ok = true;
+                                        break;
+                                    }
+
+                                    response.Close();
+                                }
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.WriteLine(context, $"Exception: {ex.Message}", ConsoleTextColor.Red);
+                        }
+                    }
+
+                }
+
+                return respuesta;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
 
     }
 }
