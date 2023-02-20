@@ -38,7 +38,7 @@ namespace Common
             //SQL
             SqlConfig = new SqlConfig
             {
-                Cn = config.GetSection("SqlData").GetConnectionString("test")
+                Cn = config.GetConnectionString("TestData")
             };
 
         }

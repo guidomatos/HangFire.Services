@@ -8,25 +8,43 @@ using HangfireBasicAuthenticationFilter;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var is_prod = builder.Configuration.GetValue<bool>("is_prod");
-var hf_sql_prod = builder.Configuration.GetConnectionString("hf_sql_prod");
-var hf_sql_qa = builder.Configuration.GetConnectionString("hf_sql_qa");
-var user = builder.Configuration.GetSection("Access")["user"]?.ToString();
-var pass = builder.Configuration.GetSection("Access")["pass"]?.ToString();
+
+IConfiguration configEnvironment;
+
+var pre_builder = new ConfigurationBuilder()
+      .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+var pre_config = pre_builder.Build();
+var is_prod = Convert.ToBoolean(pre_config["is_prod"]);
 
 var dashboardTitle = "";
-var hfCn = "";
-if (is_prod) //PROD
+
+if (is_prod)
 {
+    var builderEnvironment = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.prod.json", optional: false, reloadOnChange: true);
+
+    configEnvironment = builderEnvironment.Build();
+
     dashboardTitle = "HangFire PROD";
-    hfCn = hf_sql_prod;
+}
+else
+{
+    var builderEnvironment = new ConfigurationBuilder()
+       .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+       .AddJsonFile("appsettings.qa.json", optional: false, reloadOnChange: true);
+
+    configEnvironment = builderEnvironment.Build();
+
+    dashboardTitle = "HangFire QA";
 }
 
-if (!is_prod) //QA
-{
-    dashboardTitle = "HangFire QA";
-    hfCn = hf_sql_qa;
-}
+
+var hfCn = configEnvironment.GetConnectionString("HangFire");
+var user = configEnvironment.GetSection("Access")["user"]?.ToString();
+var pass = configEnvironment.GetSection("Access")["pass"]?.ToString();
+
 
 
 // Add services to the container.
