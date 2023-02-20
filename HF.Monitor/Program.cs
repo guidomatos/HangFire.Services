@@ -70,7 +70,9 @@ builder.Services.AddHangfire(config => config
     .UseRecurringJobAdmin()
 );
 
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer( config => config
+    .Queues = new[] { "upload_file_to_ftp" } 
+);
 
 //builder.Services.AddTransient<IServiceCollection, Service>();
 
@@ -98,6 +100,7 @@ app.UseEndpoints(endpoints =>
 var supportedCultures = new[]
 {
     new CultureInfo("es-PE"),
+    new CultureInfo("es-CL"),
 };
 
 app.UseRequestLocalization(new RequestLocalizationOptions
