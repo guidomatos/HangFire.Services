@@ -144,23 +144,27 @@ namespace HF.UploadFile.Logic
                     if (excel_ready.Length > 0)
                     {
                         Log.WriteLine(context, "Subiendo archivo xls a FTP...");
+                        //Log.WriteLine(context, $"Server FTP: {ftpstorage.server}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"User FTP: {ftpstorage.user}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"Pass FTP: {ftpstorage.pass}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"Port FTP: {ftpstorage.port}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"Ruta Local FTP: {ftpstorage.ruta_local}", ConsoleTextColor.Cyan);
+                        
 
-                        //ftpstorage.ruta_local = archivo_excel;
+                        var respuestaSFTP = UploadFileToFTP(archivo_excel, subFolder, "Repositorio_Listado_Documentos", ftpstorage, context, "orsan.xls");
 
-                        //var respuestaSFTP = UploadFileToFTP(archivo_excel, subFolder, "folder_orsan", ftpstorage, context, "orsan.xls");
-                        var respuestaFTP = await UploadFileToFTP2(archivo_excel, subFolder, ftpstorage, context);
-                        Log.WriteLine(context, $"Saludo FTP: {respuestaFTP.saludo}", ConsoleTextColor.Cyan);
-                        Log.WriteLine(context, $"DescripcionStatus FTP: {respuestaFTP.descripcion}", ConsoleTextColor.Cyan);
-                        Log.WriteLine(context, $"Intento FTP: {respuestaFTP.intento}", ConsoleTextColor.Cyan);
-                        Log.WriteLine(context, $"Despedida FTP: {respuestaFTP.despedida}", ConsoleTextColor.Cyan);
+                        //var respuestaFTP = await UploadFileToFTP2(archivo_excel, subFolder, ftpstorage, context);
+                        //Log.WriteLine(context, $"DescripcionStatus FTP: {respuestaFTP.descripcion}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"Intento FTP: {respuestaFTP.intento}", ConsoleTextColor.Cyan);
+                        //Log.WriteLine(context, $"Despedida FTP: {respuestaFTP.despedida}", ConsoleTextColor.Cyan);
 
-                        if (respuestaFTP.ok)
+                        if (respuestaSFTP.ok)
                         {
-                            Log.WriteLine(context, "Archivo excel subido con Éxito!");
+                            Log.WriteLine(context, "Archivo excel subido con Éxito!", ConsoleTextColor.Green);
                         }
                         else
                         {
-                            Log.WriteLine(context, "Error al subir FTP");
+                            Log.WriteLine(context, "Error al subir FTP", ConsoleTextColor.Red);
                         }
 
                     }
@@ -247,6 +251,7 @@ namespace HF.UploadFile.Logic
                             }
 
                             client.Disconnect();
+                            
                             respuesta.ok = true;
                             break;
                         }

@@ -61,30 +61,33 @@ namespace HF.Admin
         {
             using (UploadFile.Inicio objL = new UploadFile.Inicio())
             {
+                //var ftpStorage = new FTPStorage
+                //{
+                //    server = "ftp-example.pe",
+                //    user = "user-example",
+                //    pass = "123456",
+                //    port = 21,
+                //    ruta_local = archivos_compartidos
+                //};
+
                 var ftpStorage = new FTPStorage
                 {
-                    server = "ftp-example.pe",
-                    user = "user-example",
-                    pass = "123456",
-                    port = 22
+                    server = "200.55.209.4",
+                    user = "orsanfactoring_duemint",
+                    pass = "gbw%n'(~9qd&LLw",
+                    port = 45678,
+                    ruta_local = archivos_compartidos
                 };
 
-                if (chkIsProd.Checked)
-                {
-
-                }
-                else
-                {
-
-                }
+                if (chkIsProd.Checked) { }
+                else { }
 
                 RecurringJob.AddOrUpdate(
-                                   "Upload file to FTP", // Nombre del job
-                                   () => objL.UploadFileToFTP(null, ftpStorage, CancellationToken.None), "0 4 * * *", //"0 0 0 ? 2 MON#5", // la llamada
-                                    TimeZoneInfo.Local // 
+                                   "UploadFileToFTP",
+                                   () => objL.UploadFileToFTP(null, ftpStorage, CancellationToken.None), "* * * * *",
+                                    TimeZoneInfo.Local
                                    , queue: "upload_file_to_ftp"
                                    );
-
             }
         }
 
@@ -107,8 +110,6 @@ namespace HF.Admin
             {
                 GlobalConfiguration.Configuration.UseSqlServerStorage(cn_qa);
             }
-
-            chkIsProd.Enabled = false;
 
         }
 
@@ -194,13 +195,22 @@ namespace HF.Admin
         {
             using (UploadFile.Inicio objL = new UploadFile.Inicio())
             {
+                //var ftpStorage = new FTPStorage
+                //{
+                //    //server = "ftp.gnu.org",
+                //    server = "ftp.example.com",
+                //    user = "anonymous",
+                //    pass = "",
+                //    port = 21,
+                //    ruta_local = archivos_compartidos
+                //};
+
                 var ftpStorage = new FTPStorage
                 {
-                    //server = "ftp.gnu.org",
-                    server = "ftp.example.com",
-                    user = "anonymous",
-                    pass = "",
-                    port = 21,
+                    server = "200.55.209.4",
+                    user = "orsanfactoring_duemint",
+                    pass = "gbw%n'(~9qd&LLw",
+                    port = 45678,
                     ruta_local = archivos_compartidos
                 };
 
